@@ -98,6 +98,36 @@ fr_edge/
     └── face_database.pkl          # Registered identities
 ```
 
+## XNNPACK Execution Provider (this branch)
+
+This branch (`xnnpack`) prefers `XNNPACKExecutionProvider` over the generic CPU EP. XNNPACK is ARM-optimized and typically gives **2–3× faster inference** on Cortex-A class CPUs (A73, A72, A55, etc.).
+
+The active EP is printed at boot:
+```
+[EdgeSCRFDDetector] EP: XNNPACKExecutionProvider
+[EdgeExtractor]     EP: XNNPACKExecutionProvider
+```
+
+If it shows `CPUExecutionProvider`, XNNPACK is not in your ORT build. Fix:
+
+```bash
+# Option 1 — upgrade to a recent onnxruntime wheel (includes XNNPACK on ARM since 1.16)
+pip install --upgrade onnxruntime
+
+# Option 2 — install the onnxruntime-extensions package if your distro splits it
+pip install onnxruntime-extensions
+
+# Option 3 — build ORT from source with XNNPACK enabled
+# cmake ... -Donnxruntime_USE_XNNPACK=ON
+```
+
+To fall back to the CPU-only version at any time:
+```bash
+git checkout main
+```
+
+---
+
 ## Known Limitations
 
 - Detection misses faces smaller than ~30 px at 320×320 grid. Increase `EDGE_DET_SIZE` to `(640, 640)` if needed (higher RAM cost).
