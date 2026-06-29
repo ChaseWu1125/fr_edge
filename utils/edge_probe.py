@@ -31,8 +31,16 @@ def _opts():
     o.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
     return o
 
-det_sess = ort.InferenceSession(det_path, sess_options=_opts(), providers=["CPUExecutionProvider"])
-rec_sess = ort.InferenceSession(rec_path, sess_options=_opts(), providers=["CPUExecutionProvider"])
+def _providers():
+    available = ort.get_available_providers()
+    if "XNNPACKExecutionProvider" in available:
+        return ["XNNPACKExecutionProvider", "CPUExecutionProvider"]
+    return ["CPUExecutionProvider"]
+
+_ep = _providers()
+det_sess = ort.InferenceSession(det_path, sess_options=_opts(), providers=_ep)
+rec_sess = ort.InferenceSession(rec_path, sess_options=_opts(), providers=_ep)
+print(f"EP: {det_sess.get_providers()[0]}", file=__import__('sys').stderr)
 rss_load = _rss()
 
 det_in = det_sess.get_inputs()[0].name

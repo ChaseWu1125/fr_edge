@@ -8,6 +8,13 @@ import config
 from interfaces.base_extractor import BaseExtractor
 
 
+def _preferred_providers():
+    available = ort.get_available_providers()
+    if "XNNPACKExecutionProvider" in available:
+        return ["XNNPACKExecutionProvider", "CPUExecutionProvider"]
+    return ["CPUExecutionProvider"]
+
+
 class EdgeExtractor(BaseExtractor):
     """MobileFaceNet feature extractor for edge deployment — pure ORT."""
 
@@ -22,12 +29,13 @@ class EdgeExtractor(BaseExtractor):
                 f"INT8 extractor not found: {model_path}\n"
                 "  Run: python scripts/quantize_models.py --dynamic"
             )
+        providers = _preferred_providers()
         self._session = ort.InferenceSession(
             str(model_path),
             sess_options=config.make_edge_session_options(),
-            providers=["CPUExecutionProvider"],
+            providers=providers,
         )
-        print("[EdgeExtractor] loaded INT8 MobileFaceNet")
+        print(f"[EdgeExtractor] loaded INT8 MobileFaceNet  EP: {self._session.get_providers()[0]}")
 
     def extract(self, face_img: np.ndarray) -> np.ndarray:
         """

@@ -18,6 +18,13 @@ import onnxruntime as ort
 import config
 from interfaces.base_detector import BaseDetector, FaceDetection
 
+
+def _preferred_providers():
+    available = ort.get_available_providers()
+    if "XNNPACKExecutionProvider" in available:
+        return ["XNNPACKExecutionProvider", "CPUExecutionProvider"]
+    return ["CPUExecutionProvider"]
+
 _STRIDES     = [8, 16, 32]
 _NUM_ANCHORS = 2   # SCRFD-500M: 2 anchors per spatial location
 
@@ -83,11 +90,13 @@ class EdgeSCRFDDetector(BaseDetector):
                 f"INT8 detector not found: {model_path}\n"
                 "  Run: python scripts/quantize_models.py --dynamic"
             )
+        providers = _preferred_providers()
         self._session = ort.InferenceSession(
             str(model_path),
             sess_options=config.make_edge_session_options(),
-            providers=["CPUExecutionProvider"],
+            providers=providers,
         )
+        print(f"[EdgeSCRFDDetector] EP: {self._session.get_providers()[0]}")
         self._input_name  = self._session.get_inputs()[0].name
         self._output_names = [o.name for o in self._session.get_outputs()]
         # Group 9 outputs by last dim: 1=scores, 4=bboxes, 10=kps; sort by size desc
